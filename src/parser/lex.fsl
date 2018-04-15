@@ -51,7 +51,7 @@ let stripped_integer lexbuf =
 let inline trim_and_check_range lexbuf (check: string -> 'a) (max: int64) (descr: string): string * bool =
   let split i s = String.substring s 0 i, String.substring s i (String.length s - i)
   in
-  let is_max_hex s = 
+  let is_max_hex s =
     if String.length s <= 2 then false else
     let prefix, rest = split 2 s in
     prefix = "0x" && String.uppercase rest = "7FFFFFFFFFFFFFFF"
@@ -288,7 +288,7 @@ rule token args = parse
      {
        let s = ulexeme lexbuf in INT(s, false)
      }
- 
+
  | range { let s = ulexeme lexbuf in RANGE(s) }
 
  | ieee64
@@ -392,9 +392,9 @@ rule token args = parse
  | "?." { QMARK_DOT }
  | "?" { QMARK }
  | ".[" { DOT_LBRACK }
- | ".(|" { DOT_LENS_PAREN_LEFT } 
+ | ".(|" { DOT_LENS_PAREN_LEFT }
  | ".(" { DOT_LPAREN }
- | ".[|" { DOT_LBRACK_BAR } 
+ | ".[|" { DOT_LBRACK_BAR }
  | "{:pattern" { LBRACE_COLON_PATTERN }
  | ":" { COLON }
  | "::" { COLON_COLON }
@@ -429,7 +429,7 @@ rule token args = parse
  | ".()<-"                { OP_MIXFIX_ASSIGNMENT (ulexeme lexbuf) }
  | ".(||)<-"              { OP_MIXFIX_ASSIGNMENT (ulexeme lexbuf) }
  | ".[||]<-"                { OP_MIXFIX_ASSIGNMENT (ulexeme lexbuf) }
- 
+
  | ".[]"                  { OP_MIXFIX_ACCESS (ulexeme lexbuf) }
  | ".()"                  { OP_MIXFIX_ACCESS (ulexeme lexbuf) }
  | ".(||)"                { OP_MIXFIX_ACCESS (ulexeme lexbuf) }

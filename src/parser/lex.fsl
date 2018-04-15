@@ -50,8 +50,10 @@ let stripped_integer lexbuf =
 
 let inline trim_and_check_range lexbuf (check: string -> 'a) (max: int64) (descr: string): string * bool =
   let s = stripped_integer lexbuf in
-  // FIXME detect Int64.max_int in hex and octal notations too.
-  if s = "9223372036854775807"
+  if List.existsb ((=) s) [ "9223372036854775807"; 
+                            "0x7FFFFFFFFFFFFFFF"; 
+                            "0x7fffffffffffffff";
+                            "0o777777777777777777777" ]
   then s, true
   else
     let n =

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -10,7 +10,7 @@
     <RootNamespace>extraction</RootNamespace>
     <AssemblyName>extraction</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
-    <TargetFSharpCoreVersion>4.4.3.0</TargetFSharpCoreVersion>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Name>extraction</Name>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -62,10 +62,8 @@
     <Compile Include="FStar.Extraction.ML.Term.fs" />
     <Compile Include="FStar.Extraction.ML.Modul.fsi" />
     <Compile Include="FStar.Extraction.ML.Modul.fs" />
-    <Content Include="app.config" />
     <Compile Include="FStar.Extraction.Kremlin.fsi" />
     <Compile Include="FStar.Extraction.Kremlin.fs" />
-    <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <!-- don't need parser.fsproj once we link Syntax.Print.term_to_string to prettyprint -->
@@ -85,11 +83,10 @@
       <Private>True</Private>
     </ProjectReference>
     <Reference Include="FSharp.Compatibility.OCaml">
-      <HintPath>..\VS\packages\FSharp.Compatibility.OCaml.0.1.10\lib\net40\FSharp.Compatibility.OCaml.dll</HintPath>
+      <HintPath>..\VS\packages\FSharp.Compatibility.OCaml.0.1.13\lib\net40\FSharp.Compatibility.OCaml.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="FSharp.Core">
-      <HintPath>..\VS\packages\FSharp.Core.4.2.3/lib/net45/FSharp.Core.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="FSharp.PPrint">

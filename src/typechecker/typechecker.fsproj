@@ -10,7 +10,7 @@
     <RootNamespace>typechecker</RootNamespace>
     <AssemblyName>typechecker</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
-    <TargetFSharpCoreVersion>4.4.3.0</TargetFSharpCoreVersion>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Name>typechecker</Name>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -71,7 +71,6 @@
     <Compile Include="FStar.TypeChecker.TcInductive.fs" />
     <Compile Include="FStar.TypeChecker.Tc.fsi" />
     <Compile Include="FStar.TypeChecker.Tc.fs" />
-    <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\tosyntax\tosyntax.fsproj">
@@ -80,7 +79,7 @@
       <Private>True</Private>
     </ProjectReference>
     <Reference Include="FSharp.Compatibility.OCaml">
-      <HintPath>..\VS\packages\FSharp.Compatibility.OCaml.0.1.10\lib\net40\FSharp.Compatibility.OCaml.dll</HintPath>
+      <HintPath>..\VS\packages\FSharp.Compatibility.OCaml.0.1.13\lib\net40\FSharp.Compatibility.OCaml.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="FSharp.PPrint">
@@ -93,7 +92,6 @@
     </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="FSharp.Core" >
-      <HintPath>..\VS\packages\FSharp.Core.4.2.3/lib/net45/FSharp.Core.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />

@@ -49,11 +49,18 @@ let stripped_integer lexbuf =
   List.fold_left trim_right_char s ['l'; 'L'; 'z'; 'y'; 's'; 'u'; 'U']
 
 let inline trim_and_check_range lexbuf (check: string -> 'a) (max: int64) (descr: string): string * bool =
+  let split i s = String.substring s 0 i, String.substring s i (String.length s - i)
+  in
+  let is_max_hex s = 
+    if String.length s <= 2 then false else
+    let prefix, rest = split 2 s in
+    prefix = "0x" && String.uppercase rest = "7FFFFFFFFFFFFFFF"
+  in
   let s = stripped_integer lexbuf in
-  if List.existsb ((=) s) [ "9223372036854775807"; 
-                            "0x7FFFFFFFFFFFFFFF"; 
-                            "0x7fffffffffffffff";
-                            "0o777777777777777777777" ]
+  if   s = "9223372036854775807"
+    || s = "0o777777777777777777777"
+    || s = "0b111111111111111111111111111111111111111111111111111111111111111"
+    || is_max_hex s
   then s, true
   else
     let n =

@@ -11,6 +11,7 @@
 dump*
 cache/
 /VS/packages
+/VS/.idea
 
 /src/parser/parse.fs
 /src/parser/lex.fs
@@ -28,6 +29,20 @@ cache/
 /bin/z3.exe
 /bin/z3-x86.exe
 /bin/z3-x64.exe
+/bin/cs
+/bin/de
+/bin/en
+/bin/es
+/bin/fr
+/bin/it
+/bin/ja
+/bin/ko
+/bin/pl
+/bin/pt-BR
+/bin/ru
+/bin/tr
+/bin/zh-Hans
+/bin/zh-Hant
 /src/*/obj
 
 examples/*/*.ml
@@ -78,3 +93,5 @@ nubuild.progress
 
 # Z3/F* nightly/weekly files
 /nightly
+
+*.nupkg

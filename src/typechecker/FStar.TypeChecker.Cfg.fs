@@ -726,6 +726,7 @@ let built_in_primitive_steps : BU.psmap<primitive_step> =
           | "UInt32" -> Z.of_hex "ffffffff"
           | "UInt64" -> Z.of_hex "ffffffffffffffff"
           | "UInt128" -> Z.of_hex "ffffffffffffffffffffffffffffffff"
+          | _ -> failwith "Impossible: Unrecognised Mask"
         in
         let bitwise =
           bounded_unsigned_int_types

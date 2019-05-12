@@ -1,23 +1,31 @@
 [
-  "\u000b6ok\u0000äÅ%ùë\u001cþÈ,uÉ",
+  "šEr\u001cˆæ_”ýÞ“:\u0015.f¢",
   [
     [
       "Bug1252.f",
       1,
       2,
       1,
-      [ "@query", "function_token_typing_Bug1252.p1" ],
+      [
+        "@MaxIFuel_assumption", "@query", "equation_Prims.squash",
+        "function_token_typing_Bug1252.p1",
+        "refinement_interpretation_Tm_refine_8d65e998a07dd53ec478e27017d9dba5"
+      ],
       0,
-      "b937d111af061bde30dd5234853b7755"
+      "86da561f779893d8093c811079ee3cd9"
     ],
     [
       "Bug1252.f",
       2,
       2,
       1,
-      [ "@query", "function_token_typing_Bug1252.p1" ],
+      [
+        "@MaxIFuel_assumption", "@query", "equation_Prims.squash",
+        "function_token_typing_Bug1252.p1",
+        "refinement_interpretation_Tm_refine_8d65e998a07dd53ec478e27017d9dba5"
+      ],
       0,
-      "eec8387c568a8322eecbdaf03676b503"
+      "c291b09185dfe2872134cb71034ed1e9"
     ]
   ]
 ]

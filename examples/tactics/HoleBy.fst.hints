@@ -2,13 +2,13 @@
   "û\u0018×æ¶\u001d§‘Ö\b\f\u0010À\u0017i)",
   [
     [
-      "HoleBy.uu___64",
+      "HoleBy.uu___1",
       1,
       2,
       1,
       [ "@query", "equation_HoleBy.x" ],
       0,
-      "6f78ab148393b7e41a89cd458e06f1e4"
+      "dabbd5552848a9b450cfe2e2548a0c79"
     ],
     [
       "HoleBy.lem2",
@@ -17,16 +17,16 @@
       1,
       [ "@query", "primitive_Prims.op_Addition" ],
       0,
-      "4eb4100578f6828499faa871ed348b3d"
+      "bb2312099e1db112582b5b6398ff2e29"
     ],
     [
-      "HoleBy.uu___64",
+      "HoleBy.uu___1",
       2,
       2,
       1,
       [ "@query", "equation_HoleBy.x" ],
       0,
-      "d944b53a26ea22a27e87180d398aee84"
+      "04bec0f8ffad62fa4a810527a60de947"
     ]
   ]
 ]

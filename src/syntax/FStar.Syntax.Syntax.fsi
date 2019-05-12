@@ -185,7 +185,7 @@ and cflag =                                                      (* flags applic
   | CPS                                                            (* computation is marked with attribute `cps`, for DM4F, seems useless, see #1557 *)
   | DECREASES of term
 and metadata =
-  | Meta_pattern       of list<args>                             (* Patterns for SMT quantifier instantiation *)
+  | Meta_pattern       of list<term> * list<args>                (* Patterns for SMT quantifier instantiation; the first arg instantiation *)
   | Meta_named         of lident                                 (* Useful for pretty printing to keep the type abbreviation around *)
   | Meta_labeled       of string * Range.range * bool            (* Sub-terms in a VC are labeled with error messages to be reported, used in SMT encoding *)
   | Meta_desugared     of meta_source_info                       (* Node tagged with some information about source term before desugaring *)
@@ -490,6 +490,7 @@ val mk_lcomp:
 val lcomp_comp: lcomp -> comp
 val bv_to_tm:       bv -> term
 val bv_to_name:     bv -> term
+val binders_to_names: binders -> list<term>
 
 val bv_eq:           bv -> bv -> Tot<bool>
 val order_bv:        bv -> bv -> Tot<int>
@@ -528,8 +529,6 @@ val as_implicit:    bool -> aqual
 val is_top_level:   list<letbinding> -> bool
 
 (* gensym *)
-val next_id:        (unit -> int)
-val reset_gensym:   (unit -> unit)
 val freshen_bv:     bv -> bv
 val freshen_binder:  binder -> binder
 val gen_bv:         string -> option<Range.range> -> typ -> bv
@@ -564,6 +563,7 @@ val t_bool          : term
 val t_int           : term
 val t_string        : term
 val t_exn           : term
+val t_real          : term
 val t_float         : term
 val t_char          : term
 val t_range         : term

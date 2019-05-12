@@ -67,8 +67,8 @@ type term' =
   | Project   of term * lid
   | Product   of list<binder> * term                 (* function space *)
   | Sum       of list<(either<binder,term>)> * term                 (* dependent tuple *)
-  | QForall   of list<binder> * list<list<term>> * term
-  | QExists   of list<binder> * list<list<term>> * term
+  | QForall   of list<binder> * patterns * term
+  | QExists   of list<binder> * patterns * term
   | Refine    of binder * term
   | NamedTyp  of ident * term
   | Paren     of term
@@ -83,6 +83,8 @@ type term' =
   | CalcProof of term * term * list<calc_step> (* A calculational proof with relation, initial expression, and steps *)
 
 and term = {tm:term'; range:range; level:level}
+
+and patterns = list<ident> * list<list<term>>
 
 and calc_step =
   | CalcStep of term * term * term (* Relation, justification and next expression *)
@@ -124,6 +126,7 @@ and imp =
     | Hash
     | UnivApp
     | HashBrace of term
+    | Infix
     | Nothing
 
 type knd = term
@@ -269,9 +272,7 @@ let un_curry_abs ps body = match body.tm with
     | Abs(p', body') -> Abs(ps@p', body')
     | _ -> Abs(ps, body)
 let mk_function branches r1 r2 =
-  let x =
-    let i = C.next_id () in
-    Ident.gen r1 in
+  let x = Ident.gen r1 in
   mk_term (Abs([mk_pattern (PatVar(x,None)) r1],
                mk_term (Match(mk_term (Var(lid_of_ids [x])) r1 Expr, branches)) r2 Expr))
     r2 Expr
@@ -327,14 +328,15 @@ let mkExplicitApp t args r = match args with
       | Name s -> mk_term (Construct(s, (List.map (fun a -> (a, Nothing)) args))) r Un
       | _ -> List.fold_left (fun t a -> mk_term (App(t, a, Nothing)) r Un) t args
 
+let unit_const r = mk_term(Const Const_unit) r Expr
+
 let mkAdmitMagic r =
-    let unit_const = mk_term(Const Const_unit) r Expr in
     let admit =
         let admit_name = mk_term(Var(set_lid_range C.admit_lid r)) r Expr in
-        mkExplicitApp admit_name [unit_const] r in
+        mkExplicitApp admit_name [unit_const r] r in
     let magic =
         let magic_name = mk_term(Var(set_lid_range C.magic_lid r)) r Expr in
-        mkExplicitApp magic_name [unit_const] r in
+        mkExplicitApp magic_name [unit_const r] r in
     let admit_magic = mk_term(Seq(admit, magic)) r Expr in
     admit_magic
 
@@ -538,6 +540,10 @@ let rec term_to_string (x:term) = match x.tm with
   | Uvar id -> id.idText
   | Var l
   | Name l -> l.str
+
+  | Projector (rec_lid, field_id) ->
+    Util.format2 "%s?.%s" (string_of_lid rec_lid) (field_id.idText)
+
   | Construct (l, args) ->
     Util.format2 "(%s %s)" l.str (to_string_l " " (fun (a,imp) -> Util.format2 "%s%s" (imp_to_string imp) (term_to_string a)) args)
   | Abs(pats, t) ->
@@ -562,17 +568,37 @@ let rec term_to_string (x:term) = match x.tm with
         (pat|> pat_to_string)
         (tm|> term_to_string)
         (body|> term_to_string)
+  | Let (_, _, _) ->
+    raise_error (Fatal_EmptySurfaceLet, "Internal error: found an invalid surface Let") x.range
+
+  | LetOpen (lid, t) ->
+    Util.format2 "let open %s in %s" (string_of_lid lid) (term_to_string t)
+
   | Seq(t1, t2) ->
     Util.format2 "%s; %s" (t1|> term_to_string) (t2|> term_to_string)
+
+  | Bind (id, t1, t2) ->
+    Util.format3 "%s <- %s; %s" id.idText (term_to_string t1) (term_to_string t2)
+
   | If(t1, t2, t3) ->
     Util.format3 "if %s then %s else %s" (t1|> term_to_string) (t2|> term_to_string) (t3|> term_to_string)
-  | Match(t, branches) ->
-    Util.format2 "match %s with %s"
+
+  | Match(t, branches)
+  | TryWith (t, branches) ->
+    let s =
+      match x.tm with
+      | Match _ -> "match"
+      | TryWith _ -> "try"
+      | _ -> failwith "impossible"
+    in
+    Util.format3 "%s %s with %s"
+      s
       (t|> term_to_string)
       (to_string_l " | " (fun (p,w,e) -> Util.format3 "%s %s -> %s"
         (p |> pat_to_string)
         (match w with | None -> "" | Some e -> Util.format1 "when %s" (term_to_string e))
         (e |> term_to_string)) branches)
+
   | Ascribed(t1, t2, None) ->
     Util.format2 "(%s : %s)" (t1|> term_to_string) (t2|> term_to_string)
   | Ascribed(t1, t2, Some tac) ->
@@ -596,12 +622,12 @@ let rec term_to_string (x:term) = match x.tm with
     List.map (function Inl b -> binder_to_string b
                      | Inr t -> term_to_string t) |>
     String.concat " & "
-  | QForall(bs, pats, t) ->
+  | QForall(bs, (_, pats), t) ->
     Util.format3 "forall %s.{:pattern %s} %s"
       (to_string_l " " binder_to_string bs)
       (to_string_l " \/ " (to_string_l "; " term_to_string) pats)
       (t|> term_to_string)
-  | QExists(bs, pats, t) ->
+  | QExists(bs, (_, pats), t) ->
     Util.format3 "exists %s.{:pattern %s} %s"
       (to_string_l " " binder_to_string bs)
       (to_string_l " \/ " (to_string_l "; " term_to_string) pats)
@@ -614,6 +640,25 @@ let rec term_to_string (x:term) = match x.tm with
   | Product(bs, t) ->
         Util.format2 "Unidentified product: [%s] %s"
           (bs |> List.map binder_to_string |> String.concat ",") (t|> term_to_string)
+
+  | Discrim lid ->
+    Util.format1 "%s?" (string_of_lid lid)
+
+  | Attributes ts ->
+    Util.format1 "(attributes %s)" (String.concat " " <| List.map term_to_string ts)
+
+  | Antiquote t ->
+    Util.format1 "(`#%s)" (term_to_string t)
+
+  | Quote (t, Static) ->
+    Util.format1 "(`(%s))" (term_to_string t)
+
+  | Quote (t, Dynamic) ->
+    Util.format1 "quote (%s)" (term_to_string t)
+
+  | VQuote t ->
+    Util.format1 "`%%%s" (term_to_string t)
+
   | CalcProof (rel, init, steps) ->
     Util.format3 "calc (%s) { %s %s }" (term_to_string rel)
                                        (term_to_string init)
@@ -705,3 +750,17 @@ let decl_is_val id decl =
 let thunk (ens : term) : term =
     let wildpat = mk_pattern (PatWild None) ens.range in
     mk_term (Abs ([wildpat], ens)) ens.range Expr
+
+let idents_of_binders bs r =
+    bs |> List.map
+      (fun b ->
+        match b.b with
+        | Variable i
+        | TVariable i
+        | Annotated (i, _)
+        | TAnnotated (i, _) ->
+          i
+        | NoName _ ->
+          raise_error (Fatal_MissingQuantifierBinder,
+                      "Wildcard binders in quantifiers are not allowed")
+                      r)

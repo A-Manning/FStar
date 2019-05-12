@@ -154,7 +154,6 @@ and solver_t = {
     pop          :string -> unit;
     snapshot     :string -> (solver_depth_t * unit);
     rollback     :string -> option<solver_depth_t> -> unit;
-    encode_modul :env -> modul -> unit;
     encode_sig   :env -> sigelt -> unit;
     preprocess   :env -> goal -> list<(env * goal * FStar.Options.optionstate)>;
     solve        :option<(unit -> string)> -> env -> goal -> unit; //call to the smt solver
@@ -244,6 +243,7 @@ val lookup_nonrec_definition: list<delta_level> -> env -> lident -> option<(univ
 val quals_of_qninfo        : qninfo -> option<list<qualifier>>
 val attrs_of_qninfo        : qninfo -> option<list<attribute>>
 val lookup_attrs_of_lid    : env -> lid -> option<list<attribute>>
+val fv_with_lid_has_attr   : env -> fv_lid:lid -> attr_lid:lid -> bool
 val fv_has_attr            : env -> fv -> attr_lid:lid -> bool
 val try_lookup_effect_lid  : env -> lident -> option<term>
 val lookup_effect_lid      : env -> lident -> term

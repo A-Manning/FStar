@@ -94,8 +94,12 @@ let modifies_t (s:tset nat) (h0:heap) (h1:heap) =
 let modifies (s:set nat) (h0:heap) (h1:heap) = modifies_t (TS.tset_of_set s) h0 h1
 
 let equal_dom (h1:heap) (h2:heap) :GTot Type0 =
-  (forall (a:Type0) (rel:preorder a) (r:mref a rel). h1 `contains` r <==> h2 `contains` r) /\
-  (forall (a:Type0) (rel:preorder a) (r:mref a rel). r `unused_in` h1 <==> r `unused_in` h2)
+  (forall (a:Type0) (rel:preorder a) (r:mref a rel).
+     {:pattern (h1 `contains` r) \/ (h2 `contains` r)}
+     h1 `contains` r <==> h2 `contains` r) /\
+  (forall (a:Type0) (rel:preorder a) (r:mref a rel).
+     {:pattern (r `unused_in` h1) \/ (r `unused_in` h2)}
+     r `unused_in` h1 <==> r `unused_in` h2)
 
 val lemma_ref_unused_iff_addr_unused (#a:Type0) (#rel:preorder a) (h:heap) (r:mref a rel)
   :Lemma (requires True)
@@ -199,6 +203,9 @@ val lemma_sel_upd2 (#a:Type0) (#b:Type0) (#rel1:preorder a) (#rel2:preorder b) (
 
 val lemma_mref_injectivity
   :(u:unit{forall (a:Type0) (b:Type0) (rel1:preorder a) (rel2:preorder b) (r1:mref a rel1) (r2:mref b rel2). a =!= b ==> ~ (eq3 r1 r2)})
+
+val lemma_mref_injectivity_preorder (_:unit)
+  : Lemma (forall (a:Type0) (rel1:preorder a) (rel2:preorder a) (r1:mref a rel1) (r2:mref a rel2). rel1 =!= rel2 ==> ~ (eq3 r1 r2))
 
 val lemma_in_dom_emp (#a:Type0) (#rel:preorder a) (r:mref a rel)
   :Lemma (requires True)

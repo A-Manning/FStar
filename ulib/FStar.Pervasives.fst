@@ -19,6 +19,18 @@ module FStar.Pervasives
 open Prims
 include FStar.Pervasives.Native
 
+(* Sometimes it is convenient to explicit introduce nullary symbols
+ * into the ambient context, so that SMT can appeal to their definitions
+ * even when they are no mentioned explicitly in the program, e.g., when
+ * needed for triggers.
+ * Use `intro_ambient t` for that.
+ * See, e.g., LowStar.Monotonic.Buffer.fst and its usage there for loc_none
+ *)
+abstract
+let ambient (#a:Type) (x:a) = True
+abstract
+let intro_ambient (#a:Type) (x:a) : squash (ambient x) = ()
+
 let id (#a:Type) (x:a) = x
 
 new_effect DIV = PURE
@@ -308,7 +320,7 @@ type __internal_ocaml_attributes =
     (* KreMLin-only: attach a comment to the declaration. Note that using F*-doc
      * syntax automatically fills in this attribute. *)
   | CPrologue of string
-    (* KreMLin-only: berbatim C code to be prepended to the declaration.
+    (* KreMLin-only: verbatim C code to be prepended to the declaration.
      * Multiple attributes are valid and accumulate, separated by newlines. *)
   | CEpilogue of string
     (* Ibid. *)
@@ -316,11 +328,8 @@ type __internal_ocaml_attributes =
     (* KreMLin-only: indicates that the parameter with that name is to be marked
      * as C const.  This will be checked by the C compiler, not by KreMLin or F*.
      *
-     * Note: this marks the "innermost" type as const, i.e. (Buf (Buf int))
-     * becomes (Buf (Buf (Const int))), whose C syntax is "const int **p". This
-     * does NOT mark the parameter itself as const; the C syntax would be
-     * "int **const p". This does not allow expressing things such as "int
-     * *const *p" either. *)
+     * This is deprecated and doesn't work as intended. Use
+     * LowStar.ConstBuffer.fst instead! *)
   | CCConv of string
     (* A calling convention for C, one of stdcall, cdecl, fastcall *)
   | CAbstractStruct
@@ -328,16 +337,12 @@ type __internal_ocaml_attributes =
      * inductives), indicate that the header file should only contain a forward
      * declaration, which in turn forces the client to only ever use this type
      * through a pointer. *)
+  | CIfDef
+    (* KreMLin-only: on a given `val foo`, compile if foo with #ifdef. *)
+  | CMacro
+    (* KreMLin-only: for a top-level `let v = e`, compile as a macro *)
 
 (* Some supported attributes encoded using functions. *)
-
-(*
- * to be used in attributes
- * s is the altertive function that should be printed in the warning
- * it can be omitted if the use case has no such function
- *)
-irreducible
-let deprecated (s:string) : unit = ()
 
 irreducible
 let inline_let : unit = ()

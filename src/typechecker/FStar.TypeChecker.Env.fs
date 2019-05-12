@@ -185,7 +185,6 @@ and solver_t = {
     pop          :string -> unit;
     snapshot     :string -> (solver_depth_t * unit);
     rollback     :string -> option<solver_depth_t> -> unit;
-    encode_modul :env -> modul -> unit;
     encode_sig   :env -> sigelt -> unit;
     preprocess   :env -> goal -> list<(env * goal * FStar.Options.optionstate)>;
     solve        :option<(unit -> string)> -> env -> typ -> unit;
@@ -831,8 +830,8 @@ let attrs_of_qninfo (qninfo : qninfo) : option<list<attribute>> =
 let lookup_attrs_of_lid env lid : option<list<attribute>> =
   attrs_of_qninfo <| lookup_qname env lid
 
-let fv_has_attr env fv attr_lid : bool =
-    match lookup_attrs_of_lid env fv.fv_name.v with
+let fv_with_lid_has_attr env fv_lid attr_lid : bool =
+    match lookup_attrs_of_lid env fv_lid with
     | None
     | Some [] ->
       false
@@ -841,6 +840,9 @@ let fv_has_attr env fv attr_lid : bool =
          match (U.un_uinst tm).n with
          | Tm_fvar fv -> S.fv_eq_lid fv attr_lid
          | _ -> false)
+
+let fv_has_attr env fv attr_lid =
+  fv_with_lid_has_attr env fv.fv_name.v attr_lid
 
 let try_lookup_effect_lid env (ftv:lident) : option<typ> =
   match lookup_qname env ftv with
@@ -1463,14 +1465,13 @@ let lidents env : list<lident> =
   BU.smap_fold (sigtab env) (fun _ v keys -> U.lids_of_sigelt v@keys) keys
 
 let should_enc_path env path =
-    // TODO: move
-    let rec list_prefix xs ys =
+    let rec str_i_prefix xs ys =
         match xs, ys with
         | [], _ -> true
-        | x::xs, y::ys -> x = y && list_prefix xs ys
+        | x::xs, y::ys -> String.lowercase x = String.lowercase y && str_i_prefix xs ys
         | _, _ -> false
     in
-    match FStar.List.tryFind (fun (p, _) -> list_prefix p path) env.proof_ns with
+    match FStar.List.tryFind (fun (p, _) -> str_i_prefix p path) env.proof_ns with
     | None -> false
     | Some (_, b) -> b
 
@@ -1672,7 +1673,6 @@ let dummy_solver = {
     snapshot=(fun _ -> (0, 0, 0), ());
     rollback=(fun _ _ -> ());
     encode_sig=(fun _ _ -> ());
-    encode_modul=(fun _ _ -> ());
     preprocess=(fun e g -> [e,g, FStar.Options.peek ()]);
     solve=(fun _ _ _ -> ());
     finish=(fun () -> ());

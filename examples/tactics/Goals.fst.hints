@@ -8,7 +8,7 @@
       1,
       [ "@query" ],
       0,
-      "c1d336eb11ae7f6a07986a8f44b8d4ca"
+      "8635329df9ef5d0eb589f24bb9301ebc"
     ],
     [
       "Goals.elim",
@@ -17,10 +17,10 @@
       1,
       [
         "@MaxIFuel_assumption", "@query",
-        "refinement_interpretation_Goals_Tm_refine_bb26061a0b65cfdbbd4fbb3aba2011c7"
+        "refinement_interpretation_Tm_refine_bb26061a0b65cfdbbd4fbb3aba2011c7"
       ],
       0,
-      "ee8a30b5ee1851260234ef080a175046"
+      "210d5d8dd728f8d52c01e5001ea98330"
     ],
     [
       "Goals.intro_sq",
@@ -29,7 +29,7 @@
       1,
       [ "@query" ],
       0,
-      "9e2617f030628eb837ef8baeabcd275b"
+      "6938c1fba222cfe5f2e664bc7958aff6"
     ],
     [
       "Goals.elim",
@@ -38,10 +38,10 @@
       1,
       [
         "@MaxIFuel_assumption", "@query",
-        "refinement_interpretation_Goals_Tm_refine_bb26061a0b65cfdbbd4fbb3aba2011c7"
+        "refinement_interpretation_Tm_refine_bb26061a0b65cfdbbd4fbb3aba2011c7"
       ],
       0,
-      "8d3e71ba7063bd8ff3fb07b4ab135771"
+      "ee15107ebfa9864d37efc7433fe34eb1"
     ]
   ]
 ]

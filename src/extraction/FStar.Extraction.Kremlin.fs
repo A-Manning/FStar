@@ -25,7 +25,6 @@ open FStar.Util
 open FStar.Extraction
 open FStar.Extraction.ML
 open FStar.Extraction.ML.Syntax
-open FStar.Format
 open FStar.Const
 open FStar.BaseTypes
 
@@ -50,9 +49,10 @@ and decl =
   | DFunction of option<cc> * list<flag> * int * typ * lident * list<binder> * expr
   | DTypeAlias of lident * list<flag> * int * typ
   | DTypeFlat of lident * list<flag> * int * fields_t
-  | DExternal of option<cc> * list<flag> * lident * typ
+  | DUnusedRetainedForBackwardsCompat of option<cc> * list<flag> * lident * typ
   | DTypeVariant of lident * list<flag> * int * branches_t
   | DTypeAbstractStruct of lident
+  | DExternal of option<cc> * list<flag> * lident * typ * list<ident>
 
 and cc =
   | StdCall
@@ -77,6 +77,8 @@ and flag =
   | Prologue of string
   | Epilogue of string
   | Abstract
+  | IfDef
+  | Macro
 
 and fsdoc = string
 
@@ -341,7 +343,7 @@ let rec translate (MLLib modules): list<file> =
       Syntax.string_of_mlpath path
     in
     try
-      BU.print1 "Attempting to translate module %s\n" m_name;
+      if not (Options.silent()) then (BU.print1 "Attempting to translate module %s\n" m_name);
       Some (translate_module m)
     with
     | e ->
@@ -373,6 +375,8 @@ and translate_flags flags =
     | Syntax.CPrologue s -> Some (Prologue s)
     | Syntax.CEpilogue s -> Some (Epilogue s)
     | Syntax.CAbstract -> Some Abstract
+    | Syntax.CIfDef -> Some IfDef
+    | Syntax.CMacro -> Some Macro
     | _ -> None // is this all of them?
   ) flags
 
@@ -415,8 +419,12 @@ and translate_let env flavor lb: option<decl> =
       mllb_meta = meta
     } when BU.for_some (function Syntax.Assumed -> true | _ -> false) meta ->
       let name = env.module_name, name in
+      let arg_names = match e.expr with
+        | MLE_Fun (args, _) -> List.map fst args
+        | _ -> []
+      in
       if List.length tvars = 0 then
-        Some (DExternal (translate_cc meta, translate_flags meta, name, translate_type env t0))
+        Some (DExternal (translate_cc meta, translate_flags meta, name, translate_type env t0, arg_names))
       else begin
         BU.print1_warning "Not extracting %s to KreMLin (polymorphic assumes are not supported)\n" (Syntax.string_of_mlpath name);
         None
@@ -715,7 +723,7 @@ and translate_expr env e: expr =
           string_of_mlpath p = "LowStar.Monotonic.Buffer.malloca" ||
           string_of_mlpath p = "LowStar.ImmutableBuffer.ialloca") ->
       EBufCreate (Stack, translate_expr env e1, translate_expr env e2)
-  
+
   | MLE_App ({ expr = MLE_TApp({ expr = MLE_Name p }, _) } , [ elen ])
     when string_of_mlpath p = "LowStar.UninitializedBuffer.ualloca" ->
       EBufCreateNoInit (Stack, translate_expr env elen)
@@ -837,12 +845,21 @@ and translate_expr env e: expr =
       EConstant (must (mk_width m), c)
 
   | MLE_App ({ expr = MLE_Name ([ "C" ], "string_of_literal") }, [ { expr = e } ])
+  | MLE_App ({ expr = MLE_Name ([ "C"; "Compat"; "String" ], "of_literal") }, [ { expr = e } ])
   | MLE_App ({ expr = MLE_Name ([ "C"; "String" ], "of_literal") }, [ { expr = e } ]) ->
       begin match e with
       | MLE_Const (MLC_String s) ->
           EString s
       | _ ->
           failwith "Cannot extract string_of_literal applied to a non-literal"
+      end
+
+  | MLE_App ({ expr = MLE_Name ([ "LowStar"; "Literal" ], "buffer_of_literal") }, [ { expr = e } ]) ->
+      begin match e with
+      | MLE_Const (MLC_String s) ->
+          ECast (EString s, TBuf (TInt UInt8))
+      | _ ->
+          failwith "Cannot extract buffer_of_literal applied to a non-literal"
       end
 
   | MLE_App ({ expr = MLE_Name ([ "FStar"; "Int"; "Cast" ], c) }, [ arg ]) ->
@@ -925,7 +942,8 @@ and assert_lid env t =
         TApp (lid, List.map (translate_type env) ts)
       else
         TQualified lid
-  | _ -> failwith "invalid argument: assert_lid"
+  | _ -> failwith (BU.format1 "invalid argument: expected MLTY_Named, got %s"
+                             (ML.Code.string_of_mlty ([], "") t))
 
 and translate_branches env branches =
   List.map (translate_branch env) branches

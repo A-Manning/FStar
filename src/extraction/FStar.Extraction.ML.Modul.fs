@@ -106,6 +106,8 @@ let rec extract_meta x =
       | "FStar.Pervasives.Substitute" -> Some Substitute
       | "FStar.Pervasives.Gc" -> Some GCType
       | "FStar.Pervasives.CAbstractStruct" -> Some CAbstract
+      | "FStar.Pervasives.CIfDef" -> Some CIfDef
+      | "FStar.Pervasives.CMacro" -> Some CMacro
       | _ -> None
       end
   | { n = Tm_app ({ n = Tm_fvar fv }, [{ n = Tm_constant (Const_string (s, _)) }, _]) } ->
@@ -315,7 +317,9 @@ let extract_typ_abbrev env quals attrs lb
         | _ -> [], def in
     let assumed = BU.for_some (function Assumption -> true | _ -> false) quals in
     let env1, ml_bs = binders_as_mlty_binders env bs in
-    let body = Term.term_as_mlty env1 body |> Util.eraseTypeDeep (Util.udelta_unfold env1) in
+    let body =
+      Term.term_as_mlty env1 body |> Util.eraseTypeDeep (Util.udelta_unfold env1)
+    in
     let mangled_projector =
          if quals |> BU.for_some (function Projector _ -> true | _ -> false) //projector names have to mangled
          then let mname = mangle_projector_lid lid in
@@ -330,6 +334,41 @@ let extract_typ_abbrev env quals attrs lb
         else let env, tydef = UEnv.extend_tydef env fv td in
              env, iface_of_tydefs [tydef]
     in
+    env,
+    iface,
+    def
+
+let extract_let_rec_type env quals attrs lb
+    : env_t
+    * iface
+    * list<mlmodule1> =
+    let lbtyp =
+      FStar.TypeChecker.Normalize.normalize
+        [Env.Beta;
+         Env.AllowUnboundUniverses;
+         Env.EraseUniverses;
+         Env.UnfoldUntil delta_constant]
+        env.env_tcenv
+        lb.lbtyp
+    in
+    let bs, _ = U.arrow_formals lbtyp in
+    let env1, ml_bs = binders_as_mlty_binders env bs in
+    let fv = right lb.lbname in
+    let lid = fv.fv_name.v in
+    let body = MLTY_Top in
+    let metadata = extract_metadata attrs @ List.choose flag_of_qual quals in
+    let assumed = false in
+    let td =
+      assumed,
+      lident_as_mlsymbol lid,
+      None,
+      ml_bs,
+      metadata,
+      Some (MLTD_Abbrev body)
+    in
+    let def = [MLM_Loc (Util.mlloc_of_range (Ident.range_of_lid lid)); MLM_Ty [td]] in
+    let env, tydef = UEnv.extend_tydef env fv td in
+    let iface = iface_of_tydefs [tydef] in
     env,
     iface,
     def
@@ -478,6 +517,36 @@ let extract_reifiable_effect g ed
     iface_union_l (return_iface::bind_iface::actions_iface),
     return_decl::bind_decl::actions
 
+let extract_let_rec_types se (env:uenv) (lbs:list<letbinding>) =
+    //extracting `let rec t .. : Type = e
+    //            and ...
+    if BU.for_some (fun lb -> not (Term.is_arity env lb.lbtyp)) lbs
+    then //mixtures of mutually recursively defined types and terms
+         //are not yet supported
+         Errors.raise_error
+           (Errors.Fatal_ExtractionUnsupported,
+             "Mutually recursively defined typed and terms cannot yet be extracted")
+           se.sigrng
+    else
+      let env, iface_opt, impls =
+          List.fold_left
+            (fun (env, iface_opt, impls) lb ->
+              let env, iface, impl =
+                extract_let_rec_type env se.sigquals se.sigattrs lb
+              in
+              let iface_opt =
+                match iface_opt with
+                | None -> Some iface
+                | Some iface' -> Some (iface_union iface' iface)
+              in
+              (env, iface_opt, impl::impls))
+            (env, None, [])
+            lbs
+      in
+      env,
+      Option.get iface_opt,
+      List.rev impls |> List.flatten
+
 
 (*  The top-level extraction of a sigelt to an interface *)
 let extract_sigelt_iface (g:uenv) (se:sigelt) : uenv * iface =
@@ -496,6 +565,13 @@ let extract_sigelt_iface (g:uenv) (se:sigelt) : uenv * iface =
     | Sig_let((false, [lb]), _) when Term.is_arity g lb.lbtyp ->
       let env, iface, _ =
           extract_typ_abbrev g se.sigquals se.sigattrs lb
+      in
+      env, iface
+
+    | Sig_let ((true, lbs), _)
+      when BU.for_some (fun lb -> Term.is_arity g lb.lbtyp) lbs ->
+      let env, iface, _ =
+        extract_let_rec_types se g lbs
       in
       env, iface
 
@@ -533,7 +609,7 @@ let extract_sigelt_iface (g:uenv) (se:sigelt) : uenv * iface =
            env, iface
       else g, empty_iface
 
-let extract_iface (g:env_t) modul =
+let extract_iface' (g:env_t) modul =
     if Options.interactive() then g, empty_iface else
     let _ = Options.restore_cmd_line_options true in
     let decls = modul.declarations in
@@ -547,6 +623,13 @@ let extract_iface (g:env_t) modul =
     in
     ignore <| Options.restore_cmd_line_options true;
     res
+
+let extract_iface (g:env_t) modul =
+    if Options.debug_any()
+    then FStar.Util.measure_execution_time
+             (BU.format1 "Extracted interface of %s" modul.name.str)
+             (fun () -> extract_iface' g modul)
+    else extract_iface' g modul
 
 let extend_with_iface (g:env_t) (iface:iface) =
      { g with
@@ -702,6 +785,15 @@ let rec extract_sig (g:env_t) (se:sigelt) : env_t * list<mlmodule1> =
           in
           env, impl
 
+        | Sig_let((true, lbs), _)
+          when BU.for_some (fun lb -> Term.is_arity g lb.lbtyp) lbs ->
+          //extracting `let rec t .. : Type = e
+          //            and ...
+          let env, _, impl =
+            extract_let_rec_types se g lbs
+          in
+          env, impl
+
         | Sig_let (lbs, _) ->
           let attrs = se.sigattrs in
           let quals = se.sigquals in
@@ -832,18 +924,27 @@ let rec extract_sig (g:env_t) (se:sigelt) : env_t * list<mlmodule1> =
          g, []
 
 let extract' (g:uenv) (m:modul) : uenv * option<mllib> =
-  S.reset_gensym();
   let _ = Options.restore_cmd_line_options true in
   let name = MLS.mlpath_of_lident m.name in
   let g = {g with env_tcenv=FStar.TypeChecker.Env.set_current_module g.env_tcenv m.name;
                   currentModule = name} in
-  let g, sigs = BU.fold_map extract_sig g m.declarations in
+  let g, sigs =
+    BU.fold_map
+        (fun g se ->
+            if Options.debug_module m.name.str
+            then let nm = FStar.Syntax.Util.lids_of_sigelt se |> List.map Ident.string_of_lid |> String.concat ", " in
+                 BU.print1 "+++About to extract {%s}\n" nm;
+                 FStar.Util.measure_execution_time
+                       (BU.format1 "---Extracted {%s}" nm)
+                       (fun () -> extract_sig g se)
+            else extract_sig g se)
+        g m.declarations in
   let mlm : mlmodule = List.flatten sigs in
   let is_kremlin = Options.codegen () = Some Options.Kremlin in
   if m.name.str <> "Prims"
   && (is_kremlin || not m.is_interface)
   then begin
-    BU.print1 "Extracted module %s\n" (string_of_lid m.name);
+    if not (Options.silent()) then (BU.print1 "Extracted module %s\n" (string_of_lid m.name));
     g, Some (MLLib ([name, Some ([], mlm), (MLLib [])]))
   end
   else g, None

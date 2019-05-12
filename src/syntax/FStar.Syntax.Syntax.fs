@@ -202,7 +202,7 @@ and cflag =                                                      (* flags applic
   | CPS                                                            (* computation is marked with attribute `cps`, for DM4F, seems useless, see #1557 *)
   | DECREASES of term
 and metadata =
-  | Meta_pattern       of list<args>                             (* Patterns for SMT quantifier instantiation *)
+  | Meta_pattern       of list<term> * list<args>                (* Patterns for SMT quantifier instantiation; the first arg is the list of names of the binders of the enclosing forall/exists *)
   | Meta_named         of lident                                 (* Useful for pretty printing to keep the type abbreviation around *)
   | Meta_labeled       of string * Range.range * bool            (* Sub-terms in a VC are labeled with error messages to be reported, used in SMT encoding *)
   | Meta_desugared     of meta_source_info                       (* Node tagged with some information about source term before desugaring *)
@@ -539,6 +539,7 @@ let mk (t:'a) = fun (_:option<unit>) r -> {
 }
 let bv_to_tm   bv :term = mk (Tm_bvar bv) None (range_of_bv bv)
 let bv_to_name bv :term = mk (Tm_name bv) None (range_of_bv bv)
+let binders_to_names (bs:binders) : list<term> = bs |> List.map (fun (x, _) -> bv_to_name x)
 let mk_Tm_app (t1:typ) (args:list<arg>) (k:option<unit>) p =
     match args with
     | [] -> t1
@@ -617,30 +618,23 @@ let pat_bvs (p:pat) : list<bv> =
   List.rev <| aux [] p
 
 (* Gen sym *)
-let gen_reset =
-    let x = Util.mk_ref 0 in
-    let gen () = incr x; !x in
-    let reset () = x := 0 in
-    gen, reset
-let next_id = fst gen_reset
-let reset_gensym = snd gen_reset
 let range_of_ropt = function
     | None -> dummyRange
     | Some r -> r
 let gen_bv : string -> option<Range.range> -> typ -> bv = fun s r t ->
   let id = mk_ident(s, range_of_ropt r) in
-  {ppname=id; index=next_id(); sort=t}
+  {ppname=id; index=Ident.next_id(); sort=t}
 let new_bv ropt t = gen_bv Ident.reserved_prefix ropt t
 
 let freshen_bv bv =
     if is_null_bv bv
     then new_bv (Some (range_of_bv bv)) bv.sort
-    else {bv with index=next_id()}
+    else {bv with index=Ident.next_id()}
 
 let freshen_binder (b:binder) = let (bv, aq) = b in (freshen_bv bv, aq)
 
 let new_univ_name ropt =
-    let id = next_id() in
+    let id = Ident.next_id() in
     mk_ident (Ident.reserved_prefix ^ Util.string_of_int id, range_of_ropt ropt)
 let mkbv x y t  = {ppname=x;index=y;sort=t}
 let lbname_eq l1 l2 = match l1, l2 with
@@ -699,6 +693,7 @@ let t_bool      = tconst PC.bool_lid
 let t_int       = tconst PC.int_lid
 let t_string    = tconst PC.string_lid
 let t_exn       = tconst PC.exn_lid
+let t_real      = tconst PC.real_lid
 let t_float     = tconst PC.float_lid
 let t_char      = tabbrev PC.char_lid
 let t_range     = tconst PC.range_lid

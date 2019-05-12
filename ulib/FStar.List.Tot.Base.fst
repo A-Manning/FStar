@@ -126,7 +126,13 @@ let op_At x y = append x y
 (** [snoc (l, x)] adds [x] to the end of the list [l].
 
     Note: We use an uncurried [snoc (l, x)] instead of the curried
-    [snoc l x]. *)
+    [snoc l x]. This is intentional. If [snoc] takes a pair instead
+    of 2 arguments, it allows for a better pattern on
+    [lemma_unsnoc_snoc], which connects [snoc] and [unsnoc]. In
+    particular, if we had two arguments, then either the pattern would
+    either be too restrictive or would lead to over-triggering. More
+    context for this can be seen in the (collapsed and uncollapsed)
+    comments at https://github.com/FStarLang/FStar/pull/1560 *)
 val snoc: (list 'a * 'a) -> Tot (list 'a)
 let snoc (l, x) = append l [x]
 
@@ -556,3 +562,27 @@ let rec list_unref #a #p l =
     match l with
     | [] -> []
     | x::xs -> x :: list_unref xs
+
+val list_refb: #a:eqtype -> #p:(a -> Tot bool) ->
+  l:list a { for_all p l } ->
+  Tot (l':list (x:a{ p x }) {
+    length l = length l' /\
+    (forall i. {:pattern (index l i) } index l i = index l' i) })
+let rec list_refb #a #p l =
+  match l with
+  | hd :: tl -> hd :: list_refb #a #p tl
+  | [] -> []
+
+val list_ref: #a:eqtype -> #p:(a -> Tot prop) -> l:list a {
+  forall x. {:pattern mem x l} mem x l ==> p x
+} -> Tot (l':list (x:a{ p x }) {
+    length l = length l' /\
+    (forall i. {:pattern (index l i) } index l i = index l' i) })
+let rec list_ref #a #p l =
+  match l with
+  | hd :: tl ->
+      assert (mem hd l);
+      assert (p hd);
+      assert (forall x. {:pattern mem x tl} mem x tl ==> mem x l);
+      hd :: list_ref #a #p tl
+  | [] -> []

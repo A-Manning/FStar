@@ -66,7 +66,7 @@ let set_hint_correlator env se =
       let lids = U.lids_of_sigelt se in
       let lid = match lids with
             | [] -> Ident.lid_add_suffix (Env.current_module env)
-                                         (S.next_id () |> BU.string_of_int)
+                                         (Ident.next_id () |> BU.string_of_int)
             | l::_ -> l in
       {env with qtbl_name_and_index=tbl, Some (lid, get_n lid)}
 
@@ -1067,7 +1067,7 @@ let list_of_option = function
 
 (* Finds a discrepancy between two multisets of ints. Result is (elem, amount1, amount2) *)
 (* Precondition: lists are sorted *)
-let check_multi_contained (l1 : list<int>) (l2 : list<int>) : option<(int * int * int)> =
+let check_multi_eq (l1 : list<int>) (l2 : list<int>) : option<(int * int * int)> =
     let rec collect (l : list<'a>) : list<('a * int)> =
         match l with
         | [] -> []
@@ -1096,11 +1096,12 @@ let check_multi_contained (l1 : list<int>) (l2 : list<int>) : option<(int * int 
             Some (e, 0, n)
 
         | (hd1, n1) :: tl1, (hd2, n2) :: tl2 when hd1 <> hd2 ->
-            Some (hd1, n1, 0)
-
-        | (hd1, n1) :: tl1, (hd2, n2) :: tl2 (* when hd1 = hd2 *) ->
-            if n1 <> n2
-            then Some (hd1, n1, n2)
+            if hd1 < hd2 then
+                Some (hd1, n1, 0)
+            else if hd1 > hd2 then
+                Some (hd2, 0, n2)
+            else if n1 <> n2 then
+                Some (hd1, n1, n2)
             else aux tl1 tl2
     in
     aux l1 l2
@@ -1562,8 +1563,16 @@ let tc_decl' env0 se: list<sigelt> * list<sigelt> * Env.env =
             else e_lax
           | _ -> e_lax  //leave recursive lets as is
         in
-        let e = tc_maybe_toplevel_term ({ env' with phase1 = true; lax = true }) e |> (fun (e, _, _) -> e) |> N.remove_uvar_solutions env' |> drop_lbtyp in
-        if Env.debug env <| Options.Other "TwoPhases" then BU.print1 "Let binding after phase 1: %s\n" (Print.term_to_string e);
+        let (e, ms) =
+            BU.record_time (fun () ->
+              tc_maybe_toplevel_term ({ env' with phase1 = true; lax = true }) e |> (fun (e, _, _) -> e) |> N.remove_uvar_solutions env' |> drop_lbtyp
+            ) in
+        if Env.debug env <| Options.Other "TwoPhases" then
+          BU.print1 "Let binding after phase 1: %s\n"
+            (Print.term_to_string e);
+        if Env.debug env <| Options.Other "TCDeclTime" then
+          BU.print1 "Let binding elaborated (phase 1) in %s milliseconds\n"
+            (string_of_int ms);
         e
       end
       else e
@@ -1583,7 +1592,12 @@ let tc_decl' env0 se: list<sigelt> * list<sigelt> * Env.env =
         let lbdef = env.postprocess env tau lb.lbtyp lb.lbdef in
         { lb with lbdef = lbdef }
     in
-    let se, lbs = match tc_maybe_toplevel_term env' e with
+    let (r, ms) = BU.record_time (fun () -> tc_maybe_toplevel_term env' e) in
+    if Env.debug env <| Options.Other "TCDeclTime" then
+      BU.print1 "Let binding typechecked in phase 2 in %s milliseconds\n"
+        (string_of_int ms);
+
+    let se, lbs = match r with
       | {n=Tm_let(lbs, e)}, _, g when Env.is_trivial g ->
         // Propagate binder names into signature
         let lbs = (fst lbs, (snd lbs) |> List.map rename_parameters) in
@@ -1654,7 +1668,7 @@ let tc_decl env se: list<sigelt> * list<sigelt> * Env.env =
         Errors.log_issue se.sigrng (Errors.Error_DidNotFail, "This top-level definition was expected to fail, but it succeeded")
     | _ ->
         if errnos <> [] && errnos <> actual then
-            let (e, n1, n2) = match check_multi_contained errnos actual with
+            let (e, n1, n2) = match check_multi_eq errnos actual with
                               | Some r -> r
                               | None -> (-1, -1, -1) // should be impossible
             in
@@ -2072,7 +2086,6 @@ let snapshot_context env msg = BU.atomically (fun () ->
 
 let rollback_context solver msg depth : env = BU.atomically (fun () ->
     let env = TypeChecker.Env.rollback solver msg depth in
-    solver.refresh ();
     env)
 
 let push_context env msg = snd (snapshot_context env msg)
@@ -2123,8 +2136,11 @@ and finish_partial_modul (loading_from_cache:bool) (iface_exists:bool) (en:env) 
 
     //set up the environment to verify the interface
     let en0 =
-      //pop to get the env before this module type checking
+      //pop to get the env before this module type checking...
       let en0 = pop_context en ("Ending modul " ^ m.name.str) in
+      //.. but restore the dsenv, since typechecking `m` might have elaborated
+      // some %splices that we need to properly resolve further modules
+      let en0 = { en0 with dsenv = en.dsenv } in
       //for hints, we want to use the same id counter as was used in typechecking the module itself, so use the tbl from latest env
       let en0 = { en0 with qtbl_name_and_index = en.qtbl_name_and_index |> fst, None } in
       //restore command line options ad restart z3 (to reset things like nl.arith options)
@@ -2153,10 +2169,9 @@ and finish_partial_modul (loading_from_cache:bool) (iface_exists:bool) (en:env) 
 
     //pop BUT ignore the old env
     pop_context env ("Ending modul " ^ modul.name.str) |> ignore;
-    env.solver.encode_modul env modul;
-    env.solver.refresh();
-    //interactive mode manages it itself
-    let _ = if not (Options.interactive ()) then Options.restore_cmd_line_options true |> ignore else () in
+
+    //moved the code for encoding the module to smt to Universal
+
     modul, env
 
 let load_checked_module (en:env) (m:modul) :env =

@@ -2,30 +2,28 @@
   "«\f04ƒ íçÙ\fƒf¤ìÇM",
   [
     [
-      "Unify.uu___64",
+      "Unify.uu___10",
       1,
       2,
       1,
       [
-        "@MaxIFuel_assumption", "@query", "equation_Unify.h",
-        "function_token_typing_Unify.h", "int_inversion",
-        "primitive_Prims.op_Addition", "projection_inverse_BoxInt_proj_0"
+        "@query", "equation_Unify.h", "primitive_Prims.op_Addition",
+        "projection_inverse_BoxInt_proj_0"
       ],
       0,
-      "23b12a0bca63a004e1e4d3dbd60a3ef9"
+      "1e32d630d0b01ae521a7222cc53b20d2"
     ],
     [
-      "Unify.uu___64",
+      "Unify.uu___10",
       2,
       2,
       1,
       [
-        "@MaxIFuel_assumption", "@query", "equation_Unify.h",
-        "function_token_typing_Unify.h", "int_inversion",
-        "primitive_Prims.op_Addition", "projection_inverse_BoxInt_proj_0"
+        "@query", "equation_Unify.h", "primitive_Prims.op_Addition",
+        "projection_inverse_BoxInt_proj_0"
       ],
       0,
-      "926a0d7975d1c9414bd0aab950fd19c5"
+      "b183e847f8dab34e664536dc1073da45"
     ]
   ]
 ]

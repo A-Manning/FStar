@@ -46,6 +46,7 @@ let logic_qualifier_deprecation_warning =
 %token <string> UINT32
 %token <string> UINT64
 %token <float> IEEE64
+%token <string> REAL
 %token <char> CHAR
 %token <bool> LET
 %token <FStar_Parser_AST.fsdoc> FSDOC
@@ -676,8 +677,11 @@ typ:
   | q=quantifier bs=binders DOT trigger=trigger e=noSeqTerm
       {
         match bs with
-            | [] -> raise_error (Fatal_MissingQuantifierBinder, "Missing binders for a quantifier") (rhs2 parseState 1 3)
-            | _ -> mk_term (q (bs, trigger, e)) (rhs2 parseState 1 5) Formula
+        | [] ->
+          raise_error (Fatal_MissingQuantifierBinder, "Missing binders for a quantifier") (rhs2 parseState 1 3)
+        | _ ->
+          let idents = idents_of_binders bs (rhs2 parseState 1 3) in
+          mk_term (q (bs, (idents, trigger), e)) (rhs2 parseState 1 5) Formula
       }
 
 %inline quantifier:
@@ -834,8 +838,8 @@ tmNoEqWith(X):
   | e1=tmNoEqWith(X) op=OPINFIX3 e2=tmNoEqWith(X)
       { mk_term (Op(mk_ident(op, rhs parseState 2), [e1; e2])) (rhs2 parseState 1 3) Un}
   | e1=tmNoEqWith(X) BACKTICK op=tmNoEqWith(X) BACKTICK e2=tmNoEqWith(X)
-      { mkApp op [ e1, Nothing; e2, Nothing ] (rhs2 parseState 1 5) }
-  | e1=tmNoEqWith(X) op=OPINFIX4 e2=tmNoEqWith(X)
+      { mkApp op [ e1, Infix; e2, Nothing ] (rhs2 parseState 1 5) }
+ | e1=tmNoEqWith(X) op=OPINFIX4 e2=tmNoEqWith(X)
       { mk_term (Op(mk_ident(op, rhs parseState 2), [e1; e2])) (rhs2 parseState 1 3) Un}
   | LBRACE e=recordExp RBRACE { e }
   | BACKTICK_PERC e=atomicTerm
@@ -1029,6 +1033,7 @@ constant:
   | bs=BYTEARRAY { Const_bytearray (bs,lhs(parseState)) }
   | TRUE { Const_bool true }
   | FALSE { Const_bool false }
+  | r=REAL { Const_real r }
   | f=IEEE64 { Const_float f }
   | n=UINT8 { Const_int (n, Some (Unsigned, Int8)) }
   | n=INT8

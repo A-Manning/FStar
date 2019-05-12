@@ -1,5 +1,5 @@
 [
-  ":P\u000fˇCﬂ©pSqÆ->Nrè",
+  "ë±\u007fÚ“1•±\u0002\u0012œX∑q¶‡",
   [
     [
       "FStar.Int.Cast.Full.uint64_to_uint128",
@@ -7,42 +7,29 @@
       2,
       1,
       [
-        "@query", "equation_FStar.UInt128.n", "equation_FStar.UInt64.n",
+        "@query", "equation_FStar.UInt128.n",
         "projection_inverse_BoxInt_proj_0"
       ],
       0,
-      "311019075c04311c1d73fe2a3340e020"
+      "f5958112d0487294569103545d60d682"
     ],
     [
       "FStar.Int.Cast.Full.uint64_to_uint128",
       2,
       2,
       1,
-      [
-        "@query", "equation_FStar.UInt128.n",
-        "projection_inverse_BoxInt_proj_0"
-      ],
+      [ "@query" ],
       0,
-      "dc3598cee2f559b47ecc8127cf2c1618"
+      "6499d6faa7f5e756003aa1dc0acdfd90"
     ],
     [
       "FStar.Int.Cast.Full.uint128_to_uint64",
       1,
       2,
       1,
-      [
-        "@MaxIFuel_assumption", "@query",
-        "Prims_pretyping_ae567c2fb75be05905677af440075565", "b2t_def",
-        "data_elim_FStar.UInt64.Mk", "equation_FStar.UInt.fits",
-        "equation_FStar.UInt.size", "equation_FStar.UInt.uint_t",
-        "equation_FStar.UInt32.n", "equation_FStar.UInt64.n",
-        "equation_FStar.UInt64.t", "fuel_guarded_inversion_FStar.UInt64.t_",
-        "function_token_typing_FStar.UInt32.n", "primitive_Prims.op_AmpAmp",
-        "projection_inverse_BoxBool_proj_0",
-        "refinement_interpretation_FStar.UInt_Tm_refine_a347709bfeba48709474ad26f4f6be87"
-      ],
+      [ "@query" ],
       0,
-      "e7e0d428396e1c03b995ed4ed996f9e5"
+      "e98c3493b1648e13e1520e90aaa8fe4c"
     ],
     [
       "FStar.Int.Cast.Full.uint64_to_uint128",
@@ -51,7 +38,7 @@
       1,
       [ "@query" ],
       0,
-      "1b1b87127e99328f8fb62044ce3cb0e4"
+      "f36a0c82feac8d43a610a8a1abee0f05"
     ],
     [
       "FStar.Int.Cast.Full.uint64_to_uint128",
@@ -63,7 +50,7 @@
         "projection_inverse_BoxInt_proj_0"
       ],
       0,
-      "bde15971a1badda843968fb32d89a8e8"
+      "3bfbe1e16f9a929744204387fbf610eb"
     ],
     [
       "FStar.Int.Cast.Full.uint128_to_uint64",
@@ -72,7 +59,7 @@
       1,
       [ "@query" ],
       0,
-      "15a1031432c18f34e4db3dacaeeb2293"
+      "8d71d08dee15245c628690e095d3b7f0"
     ]
   ]
 ]

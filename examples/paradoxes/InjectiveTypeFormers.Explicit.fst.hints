@@ -1,0 +1,71 @@
+[
+  "¿eoôP—ÿ\u0001ÆRE/\u0018\u0011¿Ã",
+  [
+    [
+      "InjectiveTypeFormers.Explicit.coerce",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query",
+        "refinement_interpretation_Tm_refine_754b00004f4a881ff74d076ab276dfe1"
+      ],
+      0,
+      "38f68c1052183bddb3220b43e3cdcd92"
+    ],
+    [
+      "InjectiveTypeFormers.Explicit.lemma_of_squash",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query", "equation_Prims.squash",
+        "refinement_interpretation_Tm_refine_8d65e998a07dd53ec478e27017d9dba5"
+      ],
+      0,
+      "d8556485155e2961d1be8ae5e895572b"
+    ],
+    [
+      "InjectiveTypeFormers.Explicit.false_of_pq",
+      1,
+      2,
+      1,
+      [
+        "@MaxIFuel_assumption", "@query",
+        "equation_InjectiveTypeFormers.Explicit.p",
+        "equation_InjectiveTypeFormers.Explicit.pa",
+        "equation_InjectiveTypeFormers.Explicit.q",
+        "fuel_guarded_inversion_Prims.c_False",
+        "function_token_typing_InjectiveTypeFormers.Explicit.p",
+        "refinement_interpretation_Tm_refine_0a9dd668d96098fcd9f12df1b6843b10"
+      ],
+      0,
+      "9e4c63809861d1a5789a89fb0557e9f0"
+    ],
+    [
+      "InjectiveTypeFormers.Explicit.not_pq",
+      1,
+      2,
+      1,
+      [ "@query" ],
+      0,
+      "3057328527512a5a5b6d64468b7dc6a4"
+    ],
+    [
+      "InjectiveTypeFormers.Explicit.pq",
+      1,
+      2,
+      1,
+      [
+        "equation_InjectiveTypeFormers.Explicit.not_pq",
+        "equation_InjectiveTypeFormers.Explicit.p",
+        "equation_InjectiveTypeFormers.Explicit.pa",
+        "equation_InjectiveTypeFormers.Explicit.q", "equation_Prims.l_not",
+        "function_token_typing_InjectiveTypeFormers.Explicit.p",
+        "l_not-interp", "typing_InjectiveTypeFormers.Explicit.not_pq"
+      ],
+      0,
+      "73c8eda6e05c6030b45adb06fe774832"
+    ]
+  ]
+]

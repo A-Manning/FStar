@@ -20,6 +20,7 @@ open FStar.All
 open FStar.Util
 open FStar.Getopt
 open FStar.Ident
+open FStar.CheckedFiles
 open FStar.Universal
 module E = FStar.Errors
 
@@ -90,11 +91,11 @@ let load_native_tactics () =
     List.iter (fun x -> Util.print1 "cmxs file: %s\n" x) cmxs_files;
     Tactics.Load.load_tactics cmxs_files
 
-let init_warn_error() =
-  Errors.init_warn_error_flags;
-  let s = Options.warn_error() in
-  if s <> "" then
-    FStar.Parser.ParseIt.parse_warn_error s
+
+(* Need to keep names of input files for a second pass when prettyprinting *)
+(* This reference is set once in `go` and read in `main` if the print or *)
+(* print_in_place options are passed *)
+let fstar_files: ref<option<list<string>>> = Util.mk_ref None
 
 (****************************************************************************)
 (* Main function                                                            *)
@@ -105,15 +106,15 @@ let go _ =
     | Help ->
         Options.display_usage(); exit 0
     | Error msg ->
-        Util.print_string msg; exit 1
+        Util.print_error msg; exit 1
     | Success ->
+        fstar_files := Some filenames;
         load_native_tactics ();
-        init_warn_error();
 
         (* --dep: Just compute and print the transitive dependency graph;
                   don't verify anything *)
         if Options.dep() <> None
-        then let _, deps = Parser.Dep.collect filenames in
+        then let _, deps = Parser.Dep.collect filenames FStar.CheckedFiles.load_parsing_data_from_cache in
              Parser.Dep.print deps
 
         (* Input validation: should this go to process_args? *)
@@ -155,16 +156,17 @@ let go _ =
           FStar.Fsdoc.Generator.generate filenames
 
         (* --print: Emit files in canonical source syntax *)
-        else if Options.indent () then
+        else if Options.print () || Options.print_in_place () then
           if FStar.Platform.is_fstar_compiler_using_ocaml
-          then FStar.Indent.generate filenames
+          then FStar.Prettyprint.generate FStar.Prettyprint.ToTempFile filenames
           else failwith "You seem to be using the F#-generated version ofthe compiler ; \
                          reindenting is not known to work yet with this version"
 
         (* Normal, batch mode compiler *)
         else if List.length filenames >= 1 then begin //normal batch mode
-          let filenames, dep_graph = FStar.Dependencies.find_deps_if_needed filenames in
-          let tcrs, env, delta_env = Universal.batch_mode_tc filenames dep_graph in
+          let filenames, dep_graph = FStar.Dependencies.find_deps_if_needed filenames FStar.CheckedFiles.load_parsing_data_from_cache in
+          let tcrs, env, cleanup = Universal.batch_mode_tc filenames dep_graph in
+          ignore (cleanup env);
           let module_names_and_times =
             tcrs
             |> List.map (fun tcr ->
@@ -194,6 +196,7 @@ let lazy_chooser k i = match k with
 
 // This is called directly by the Javascript port (it doesn't call Main)
 let setup_hooks () =
+    Options.initialize_parse_warn_error FStar.Parser.ParseIt.parse_warn_error;
     FStar.Syntax.Syntax.lazy_chooser := Some lazy_chooser;
     FStar.Syntax.Util.tts_f := Some FStar.Syntax.Print.term_to_string;
     FStar.TypeChecker.Normalize.unembed_binder_knot := Some FStar.Reflection.Embeddings.e_binder
@@ -211,9 +214,20 @@ let handle_error e =
 let main () =
   try
     setup_hooks ();
-    let _, time = FStar.Util.record_time go in
+    let _, time = Util.record_time go in
+    if Options.print () || Options.print_in_place () then
+      match !fstar_files with
+      | Some filenames ->
+          let printing_mode =
+            if Options.print () then
+              FStar.Prettyprint.FromTempToStdout
+            else
+              FStar.Prettyprint.FromTempToFile
+          in
+          FStar.Prettyprint.generate printing_mode filenames
+      | None -> Util.print_error "Internal error: List of source files not properly set";
     if FStar.Options.query_stats()
-    then FStar.Util.print2 "TOTAL TIME %s ms: %s\n"
+    then Util.print2 "TOTAL TIME %s ms: %s\n"
               (FStar.Util.string_of_int time)
               (String.concat " " (FStar.Getopt.cmdline()));
     cleanup ();

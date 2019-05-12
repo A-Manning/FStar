@@ -7,14 +7,13 @@
       2,
       1,
       [
-        "@MaxIFuel_assumption", "@query",
-        "equation_FStar.Reflection.Data.var", "equation_Prims.eqtype",
-        "equation_Prims.nat",
-        "function_token_typing_FStar.Reflection.Data.var",
-        "refinement_interpretation_Prims_Tm_refine_414d0a9f578ab0048252f8c8f552b99f"
+        "@MaxIFuel_assumption", "@query", "equation_Prims.eqtype",
+        "equation_Prims.nat", "function_token_typing_Prims.int",
+        "haseqTm_refine_ba523126f67e00e7cd55f0b92f16681d",
+        "refinement_interpretation_Tm_refine_414d0a9f578ab0048252f8c8f552b99f"
       ],
       0,
-      "bdc24452eee30e298370d205b8eb3195"
+      "787b26d05da6d327f47245607108fb3a"
     ],
     [
       "Bug1571.__proj__V__item___0",
@@ -24,10 +23,10 @@
       [
         "@MaxIFuel_assumption", "@query", "disc_equation_Bug1571.V",
         "projection_inverse_BoxBool_proj_0",
-        "refinement_interpretation_Bug1571_Tm_refine_4efce2107be5fc6d34ea56c6f3b06057"
+        "refinement_interpretation_Tm_refine_4efce2107be5fc6d34ea56c6f3b06057"
       ],
       0,
-      "53b53bdc89b4a8df68b382420cce74e5"
+      "61b4eb621eb918e3d7746adac7400121"
     ]
   ]
 ]
